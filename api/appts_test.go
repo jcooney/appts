@@ -19,11 +19,12 @@ import (
 func TestCreateAppointment(t *testing.T) {
 
 	tests := []struct {
-		name        string
-		request     api.AppointmentRequest
-		wantStatus  int
-		wantErrBody *api.ErrResponse
-		mockService api.AppointmentCreator
+		name         string
+		request      api.AppointmentRequest
+		wantStatus   int
+		wantErrBody  *api.ErrResponse
+		mockService  api.AppointmentCreator
+		wantResponse *api.AppointmentResponse
 	}{
 		{
 			name: "400 when missing first name",
@@ -57,10 +58,15 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: time.Now(),
+				VisitDate: time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC),
 			},
 			wantStatus:  http.StatusCreated,
 			mockService: success{},
+			wantResponse: &api.AppointmentResponse{
+				FirstName: "John",
+				LastName:  "Doe",
+				VisitDate: time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC),
+			},
 		},
 		{
 			name: "500 when mapping from unsupported service error",
@@ -131,6 +137,16 @@ func TestCreateAppointment(t *testing.T) {
 			}(resp.Body)
 
 			require.Equal(t, tt.wantStatus, resp.StatusCode)
+			if tt.wantStatus == http.StatusCreated {
+				all, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				var got api.AppointmentResponse
+				err = json.Unmarshal(all, &got)
+				require.NoError(t, err)
+				require.Equal(t, tt.wantResponse.FirstName, got.FirstName)
+				require.Equal(t, tt.wantResponse.LastName, got.LastName)
+				require.True(t, tt.wantResponse.VisitDate.Equal(got.VisitDate))
+			}
 			if tt.wantErrBody != nil {
 				all, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)

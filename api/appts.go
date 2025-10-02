@@ -20,6 +20,12 @@ type AppointmentCreator interface {
 	Create(ctx context.Context, appt *domain.Appointment) (*domain.Appointment, error)
 }
 
+var errorMap = map[error]int{
+	domain.ErrAppointmentOnPublicHoliday: http.StatusBadRequest,
+	domain.ErrAppointmentDateTaken:       http.StatusConflict,
+	domain.ErrAppointmentInPast:          http.StatusBadRequest,
+}
+
 // CreateAppointment persists the posted Article and returns it
 // back to the client as an acknowledgement.
 func CreateAppointment(service AppointmentCreator) http.HandlerFunc {
@@ -33,49 +39,30 @@ func CreateAppointment(service AppointmentCreator) http.HandlerFunc {
 			return
 		}
 
-		// make a service call to persist the appointment here
 		appointment, err := service.Create(r.Context(), domain.NewAppointment(req.FirstName, req.LastName, req.VisitDate))
 		if err != nil {
-			if errors.Is(err, domain.ErrAppointmentOnPublicHoliday) {
-				err := render.Render(w, r, &ErrResponse{
-					HTTPStatusCode: http.StatusBadRequest,
-					StatusText:     http.StatusText(http.StatusBadRequest),
+			if code, ok := errorMap[err]; ok {
+				renderErr := render.Render(w, r, &ErrResponse{
+					HTTPStatusCode: code,
+					StatusText:     http.StatusText(code),
 					ErrorText:      err.Error(),
 				})
-				if err != nil {
+				if renderErr != nil {
 					return
 				}
 				return
-			} else if errors.Is(err, domain.ErrAppointmentDateTaken) {
-				err := render.Render(w, r, &ErrResponse{
-					HTTPStatusCode: http.StatusConflict,
-					StatusText:     http.StatusText(http.StatusConflict),
+			} else {
+				// unhandled error
+				renderErr := render.Render(w, r, &ErrResponse{
+					HTTPStatusCode: http.StatusInternalServerError,
+					StatusText:     http.StatusText(http.StatusInternalServerError),
 					ErrorText:      err.Error(),
 				})
-				if err != nil {
-					return
-				}
-				return
-			} else if errors.Is(err, domain.ErrAppointmentInPast) {
-				err := render.Render(w, r, &ErrResponse{
-					HTTPStatusCode: http.StatusBadRequest,
-					StatusText:     http.StatusText(http.StatusBadRequest),
-					ErrorText:      err.Error(),
-				})
-				if err != nil {
+				if renderErr != nil {
 					return
 				}
 				return
 			}
-			err := render.Render(w, r, &ErrResponse{
-				HTTPStatusCode: http.StatusInternalServerError,
-				StatusText:     http.StatusText(http.StatusInternalServerError),
-				ErrorText:      "unhandled error",
-			})
-			if err != nil {
-				return
-			}
-			return
 		}
 		render.Status(r, http.StatusCreated)
 		_ = render.Render(w, r, NewAppointmentResponse(appointment))
