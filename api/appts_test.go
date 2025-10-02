@@ -17,7 +17,6 @@ import (
 )
 
 func TestCreateAppointment(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		request      api.AppointmentRequest
@@ -147,6 +146,63 @@ func TestCreateAppointment(t *testing.T) {
 				require.Equal(t, tt.wantResponse.LastName, got.LastName)
 				require.True(t, tt.wantResponse.VisitDate.Equal(got.VisitDate))
 			}
+			if tt.wantErrBody != nil {
+				all, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				var gotErr api.ErrResponse
+				err = json.Unmarshal(all, &gotErr)
+				require.NoError(t, err)
+				require.Equal(t, *tt.wantErrBody, gotErr)
+			}
+		})
+	}
+}
+
+func TestCreateAppointmentJson(t *testing.T) {
+	tests := []struct {
+		name        string
+		requestBody string
+		wantStatus  int
+		wantErrBody *api.ErrResponse
+	}{
+		{
+			name:        "400 when invalid JSON (malformed)",
+			requestBody: `{"firstName": "John", "lastName": "Doe", "visitDate": "2024-07-15T00:00:00Z`,
+			wantStatus:  http.StatusBadRequest,
+			wantErrBody: &api.ErrResponse{ErrorText: "unexpected EOF", StatusText: "Bad Request", HTTPStatusCode: 400},
+		},
+		{
+			name:        "400 when invalid date format",
+			requestBody: `{"firstName": "John", "lastName": "Doe", "visitDate": "15-07-2024"}`, // Incorrect date format
+			wantStatus:  http.StatusBadRequest,
+			wantErrBody: &api.ErrResponse{ErrorText: "parsing time \"15-07-2024\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"15-07-2024\" as \"2006\"", StatusText: "Bad Request", HTTPStatusCode: 400},
+		},
+		{
+			name:        "400 when invalid date format 2",
+			requestBody: `{"firstName": "John", "lastName": "Doe", "visitDate": "jnoefinefnioefwinoefwino"}`,
+			wantStatus:  http.StatusBadRequest,
+			wantErrBody: &api.ErrResponse{ErrorText: "parsing time \"jnoefinefnioefwinoefwino\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"jnoefinefnioefwinoefwino\" as \"2006\"", StatusText: "Bad Request", HTTPStatusCode: 400},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ts := httptest.NewServer(api.CreateAppointmentFunc(success{}))
+			defer ts.Close()
+
+			req, err := http.NewRequest("POST", ts.URL+"/appts/", bytes.NewBufferString(tt.requestBody))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					t.Logf("error closing response body: %v", err)
+				}
+			}(resp.Body)
+
+			require.Equal(t, tt.wantStatus, resp.StatusCode)
 			if tt.wantErrBody != nil {
 				all, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
