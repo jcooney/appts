@@ -7,15 +7,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func ChiHandler() http.Handler {
+func ChiHandler(service AppointmentCreator) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
-	r.Route("/appts", func(r chi.Router) {
-		r.Post("/", CreateAppointment)
-	})
+	r.Post("/appts/", CreateAppointmentFunc(service))
 
 	return r
+}
+
+func CreateAppointmentFunc(service AppointmentCreator) http.HandlerFunc {
+	return CreateAppointment(service)
 }

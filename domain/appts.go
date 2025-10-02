@@ -7,6 +7,8 @@ import (
 )
 
 var ErrAppointmentOnPublicHoliday = fmt.Errorf("cannot book appointment on public holiday")
+var ErrAppointmentDateTaken = fmt.Errorf("appointment date already taken")
+var ErrAppointmentInPast = fmt.Errorf("cannot book appointment in the past")
 
 type Appointment struct {
 	FirstName string
@@ -15,7 +17,7 @@ type Appointment struct {
 }
 
 type AppointmentPersistorRepository interface {
-	Save(context.Context, *Appointment) error
+	Save(context.Context, *Appointment) (*Appointment, error)
 }
 
 type PublicHolidayChecker interface {
@@ -42,14 +44,14 @@ func NewAppointmentCreatorService(repo AppointmentPersistorRepository, checker P
 	}
 }
 
-func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointment) error {
+func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointment) (*Appointment, error) {
 	ok, err := s.checker.IsPublicHoliday(ctx, appt.VisitDate)
 	if err != nil {
-		return fmt.Errorf("isPublicHoliday: %w", err)
+		return nil, fmt.Errorf("isPublicHoliday: %w", err)
 	}
 
 	if ok {
-		return ErrAppointmentOnPublicHoliday
+		return nil, ErrAppointmentOnPublicHoliday
 	}
 
 	return s.repo.Save(ctx, appt)

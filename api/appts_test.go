@@ -2,7 +2,9 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jcooney/appts/api"
+	"github.com/jcooney/appts/domain"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +23,7 @@ func TestCreateAppointment(t *testing.T) {
 		request     api.AppointmentRequest
 		wantStatus  int
 		wantErrBody *api.ErrResponse
+		mockService api.AppointmentCreator
 	}{
 		{
 			name: "400 when missing first name",
@@ -56,13 +60,57 @@ func TestCreateAppointment(t *testing.T) {
 				VisitDate: time.Now(),
 			},
 			wantStatus:  http.StatusCreated,
-			wantErrBody: nil,
+			mockService: success{},
+		},
+		{
+			name: "500 when mapping from unsupported service error",
+			request: api.AppointmentRequest{
+				FirstName: "John",
+				LastName:  "Doe",
+				VisitDate: time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC), // Christmas, assuming it's a public holiday
+			},
+			wantStatus:  http.StatusInternalServerError,
+			wantErrBody: &api.ErrResponse{ErrorText: "unhandled error", StatusText: "Internal Server Error", HTTPStatusCode: 500},
+			mockService: unhandlerError{},
+		},
+		{
+			name: "409 when appoint is already booked for the day",
+			request: api.AppointmentRequest{
+				FirstName: "Jane",
+				LastName:  "Doe",
+				VisitDate: time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC), // Assuming July 4th is already booked
+			},
+			wantStatus:  http.StatusConflict,
+			wantErrBody: &api.ErrResponse{ErrorText: "appointment date already taken", StatusText: "Conflict", HTTPStatusCode: 409},
+			mockService: dateTaken{},
+		},
+		{
+			name: "400 when appoint is on a public holiday",
+			request: api.AppointmentRequest{
+				FirstName: "Jane",
+				LastName:  "Doe",
+				VisitDate: time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC), // Christmas
+			},
+			wantStatus:  http.StatusBadRequest,
+			mockService: publicHoliday{},
+			wantErrBody: &api.ErrResponse{ErrorText: "cannot book appointment on public holiday", StatusText: "Bad Request", HTTPStatusCode: 400},
+		},
+		{
+			name: "400 when appoint is in the past",
+			request: api.AppointmentRequest{
+				FirstName: "Jane",
+				LastName:  "Doe",
+				VisitDate: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), // A past date
+			},
+			wantStatus:  http.StatusBadRequest,
+			wantErrBody: &api.ErrResponse{ErrorText: "cannot book appointment in the past", StatusText: "Bad Request", HTTPStatusCode: 400},
+			mockService: dateInPast{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := httptest.NewServer(api.ChiHandler())
+			ts := httptest.NewServer(api.CreateAppointmentFunc(tt.mockService))
 			defer ts.Close()
 
 			marshal, err := json.Marshal(tt.request)
@@ -93,4 +141,34 @@ func TestCreateAppointment(t *testing.T) {
 			}
 		})
 	}
+}
+
+type success struct{}
+
+func (s success) Create(_ context.Context, appt *domain.Appointment) (*domain.Appointment, error) {
+	return appt, nil
+}
+
+type unhandlerError struct{}
+
+func (u unhandlerError) Create(_ context.Context, _ *domain.Appointment) (*domain.Appointment, error) {
+	return nil, errors.New("unhandled error")
+}
+
+type dateTaken struct{}
+
+func (d dateTaken) Create(_ context.Context, _ *domain.Appointment) (*domain.Appointment, error) {
+	return nil, domain.ErrAppointmentDateTaken
+}
+
+type publicHoliday struct{}
+
+func (p publicHoliday) Create(_ context.Context, _ *domain.Appointment) (*domain.Appointment, error) {
+	return nil, domain.ErrAppointmentOnPublicHoliday
+}
+
+type dateInPast struct{}
+
+func (d dateInPast) Create(_ context.Context, _ *domain.Appointment) (*domain.Appointment, error) {
+	return nil, domain.ErrAppointmentInPast
 }
