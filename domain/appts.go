@@ -45,6 +45,12 @@ func NewAppointmentCreatorService(repo AppointmentPersistorRepository, checker P
 }
 
 func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointment) (*Appointment, error) {
+	if appt == nil {
+		return nil, fmt.Errorf("appointment is nil")
+	}
+	if appt.VisitDate.Before(time.Now()) {
+		return nil, ErrAppointmentInPast
+	}
 	ok, err := s.checker.IsPublicHoliday(ctx, appt.VisitDate)
 	if err != nil {
 		return nil, fmt.Errorf("isPublicHoliday: %w", err)
@@ -54,5 +60,9 @@ func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointmen
 		return nil, ErrAppointmentOnPublicHoliday
 	}
 
-	return s.repo.Save(ctx, appt)
+	save, err := s.repo.Save(ctx, appt)
+	if err != nil {
+		return nil, fmt.Errorf("save appointment: %w", err)
+	}
+	return save, nil
 }
