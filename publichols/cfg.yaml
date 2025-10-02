@@ -4,3 +4,4 @@ output: publichols.gen.go
 generate:
   client: true
   models: true
+output-options:

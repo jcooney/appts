@@ -11,11 +11,16 @@ import (
 
 	"github.com/jcooney/appts/api"
 	"github.com/jcooney/appts/domain"
+	"github.com/jcooney/appts/publichols"
 )
 
 func main() {
 	// dependencies initialised here
-	service := domain.NewAppointmentCreatorService(nil, nil)
+	getter, err := publichols.NewPublicHolidayGetter("https://date.nager.at")
+	if err != nil {
+		log.Fatalf("publichols.NewPublicHolidayGetter: %v", err)
+	}
+	service := domain.NewAppointmentCreatorService(nil, getter)
 
 	server := &http.Server{Addr: "0.0.0.0:3333", Handler: api.ChiHandler(service)}
 
