@@ -77,3 +77,47 @@ func TestPublicHolidayGetter_IsPublicHoliday(t *testing.T) {
 		})
 	}
 }
+
+func TestPublicHolidayGetter_IsPublicHolidayLiveAPI(t *testing.T) {
+	tests := []struct {
+		name                string
+		date                time.Time
+		wantIsPublicHoliday bool
+		err                 error
+	}{
+		{
+			name:                "Christmas Day 2024 is a public holiday",
+			date:                time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC),
+			wantIsPublicHoliday: true,
+		},
+		{
+			name:                "Boxing Day 2024 is a public holiday",
+			date:                time.Date(2024, 12, 26, 0, 0, 0, 0, time.UTC),
+			wantIsPublicHoliday: true,
+		},
+		{
+			name:                "December 27th 2024 is not a public holiday",
+			date:                time.Date(2024, 12, 27, 0, 0, 0, 0, time.UTC),
+			wantIsPublicHoliday: false,
+		},
+		{
+			name: "Error when calling for a date in the long time ago",
+			date: time.Date(1800, 1, 1, 0, 0, 0, 0, time.UTC),
+			err:  fmt.Errorf("no response from PublicHolidayPublicHolidaysV3WithResponse: status code: 400"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			getter, err := NewPublicHolidayGetter("https://date.nager.at")
+			require.NoError(t, err)
+			isPublicHoliday, err := getter.IsPublicHoliday(t.Context(), tt.date)
+			if tt.err != nil {
+				require.ErrorContains(t, err, tt.err.Error()) // TODO - flesh out error responses.
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.wantIsPublicHoliday, isPublicHoliday)
+			}
+		})
+	}
+}
