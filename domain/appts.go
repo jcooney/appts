@@ -17,17 +17,17 @@ type Appointment struct {
 }
 
 type AppointmentPersistorRepository interface {
-	Save(context.Context, *Appointment) (*Appointment, error)
+	save(context.Context, *Appointment) (*Appointment, error)
 }
 
 type PublicHolidayChecker interface {
 	IsPublicHoliday(context.Context, time.Time) (bool, error)
 }
 
-func NewAppointment(name string, name2 string, date time.Time) *Appointment {
+func NewAppointment(firstName string, lastName string, date time.Time) *Appointment {
 	return &Appointment{
-		FirstName: name,
-		LastName:  name2,
+		FirstName: firstName,
+		LastName:  lastName,
 		VisitDate: date,
 	}
 }
@@ -60,7 +60,7 @@ func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointmen
 		return nil, ErrAppointmentOnPublicHoliday
 	}
 
-	save, err := s.repo.Save(ctx, appt)
+	save, err := s.repo.save(ctx, appt)
 	if err != nil {
 		return nil, fmt.Errorf("save appointment: %w", err)
 	}

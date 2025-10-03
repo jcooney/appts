@@ -4,9 +4,16 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/jcooney/appts/domain"
 )
 
-func ErrInvalidRequest(err error) render.Renderer {
+var errorMap = map[error]int{
+	domain.ErrAppointmentOnPublicHoliday: http.StatusBadRequest,
+	domain.ErrAppointmentDateTaken:       http.StatusConflict,
+	domain.ErrAppointmentInPast:          http.StatusBadRequest,
+}
+
+func errInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		HTTPStatusCode: http.StatusBadRequest,
 		StatusText:     http.StatusText(http.StatusBadRequest),

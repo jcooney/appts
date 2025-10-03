@@ -15,12 +15,11 @@ import (
 )
 
 func main() {
-	// dependencies initialised here
-	getter, err := publichols.NewPublicHolidayGetter("https://date.nager.at")
+	publicHolidayGetter, err := publichols.NewPublicHolidayGetter("https://date.nager.at")
 	if err != nil {
-		log.Fatalf("publichols.NewPublicHolidayGetter: %v", err)
+		log.Fatalf("error initialising public holiday checker client: %v", err)
 	}
-	service := domain.NewAppointmentCreatorService(nil, getter)
+	service := domain.NewAppointmentCreatorService(nil, publicHolidayGetter)
 
 	server := &http.Server{Addr: "0.0.0.0:3333", Handler: api.ChiHandler(service)}
 

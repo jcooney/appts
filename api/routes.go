@@ -19,5 +19,5 @@ func ChiHandler(service AppointmentCreator) http.Handler {
 }
 
 func CreateAppointmentFunc(service AppointmentCreator) http.HandlerFunc {
-	return CreateAppointment(service)
+	return createAppointment(service)
 }
