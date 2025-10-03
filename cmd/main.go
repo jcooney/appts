@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,7 @@ import (
 )
 
 func main() {
+	slog.Info("Starting appointment service")
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -40,10 +42,12 @@ func main() {
 
 	<-ctx.Done()
 
+	slog.Info("Shutting down server")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatal(err)
 	}
+	slog.Info("Server gracefully stopped")
 }
