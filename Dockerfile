@@ -10,6 +10,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build go build -tags timetzdata -o
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /workspace/dist/api ./
+COPY --from=builder /workspace/schema/ddl ./schema/ddl
 
 CMD [ "./api" ]
 EXPOSE 3333

@@ -13,7 +13,7 @@ func ChiHandler(service AppointmentCreator) http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
-	r.Post("/appts/", CreateAppointmentFunc(service))
+	r.Post("/appts", CreateAppointmentFunc(service))
 
 	return r
 }

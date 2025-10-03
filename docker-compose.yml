@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tabeo
+    ports:
+      - "5432:5432"
+  api:
+    image: tabeo-appts:latest
+    container_name: tabeo-appts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: "postgres://appt_user:appt_password@postgres:5432/tabeo?sslmode=disable"
+      MIGRATE_DB_URL: "postgres://postgres:password@postgres:5432/tabeo?sslmode=disable"
+    ports:
+      - "3333:3333"
