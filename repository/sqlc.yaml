@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "query.sql"
+    schema: "../schema/ddl"
+    gen:
+      go:
+        package: "sqlcappts"
+        out: "gen"
+        sql_package: "pgx/v5"

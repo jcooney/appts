@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -13,6 +14,9 @@ import (
 )
 
 func TestAppliesMigration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
 	ctx := t.Context()
 
 	dbName := "tabeo"
@@ -36,9 +40,9 @@ func TestAppliesMigration(t *testing.T) {
 	connectionString, err := postgresContainer.ConnectionString(ctx)
 	require.NoError(t, err)
 
-	connectionString = connectionString + " dbname=" + dbName + " user=" + dbUser + " password=" + dbPassword
+	connectionString = fmt.Sprintf("%s dbname=%s user=%s password=%s&sslmode=disable", connectionString, dbName, dbUser, dbPassword)
 
-	m, err := migrate.New("file://ddl", connectionString+"&sslmode=disable")
+	m, err := migrate.New("file://ddl", connectionString)
 	require.NoError(t, err)
 	require.NoError(t, m.Up())
 

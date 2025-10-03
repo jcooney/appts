@@ -17,7 +17,7 @@ type Appointment struct {
 }
 
 type AppointmentPersistorRepository interface {
-	save(context.Context, *Appointment) (*Appointment, error)
+	CreateAppointment(ctx context.Context, appt *Appointment) (*Appointment, error)
 }
 
 type PublicHolidayChecker interface {
@@ -60,7 +60,7 @@ func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointmen
 		return nil, ErrAppointmentOnPublicHoliday
 	}
 
-	save, err := s.repo.save(ctx, appt)
+	save, err := s.repo.CreateAppointment(ctx, appt)
 	if err != nil {
 		return nil, fmt.Errorf("save appointment: %w", err)
 	}
