@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 )
 
 func TestPublicHolidayGetter_IsPublicHoliday(t *testing.T) {
@@ -67,7 +68,7 @@ func TestPublicHolidayGetter_IsPublicHoliday(t *testing.T) {
 
 			getter, err := NewPublicHolidayGetter(server.URL)
 			require.NoError(t, err)
-			isPublicHoliday, err := getter.IsPublicHoliday(t.Context(), tt.date)
+			isPublicHoliday, err := getter.IsPublicHoliday(t.Context(), ptr.To(tt.date))
 			if tt.wantErr != nil {
 				require.ErrorContains(t, tt.wantErr, err.Error())
 			} else {
@@ -111,7 +112,7 @@ func TestPublicHolidayGetter_IsPublicHolidayLiveAPI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			getter, err := NewPublicHolidayGetter("https://date.nager.at")
 			require.NoError(t, err)
-			isPublicHoliday, err := getter.IsPublicHoliday(t.Context(), tt.date)
+			isPublicHoliday, err := getter.IsPublicHoliday(t.Context(), ptr.To(tt.date))
 			if tt.err != nil {
 				require.ErrorContains(t, err, tt.err.Error()) // TODO - flesh out error responses.
 			} else {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 )
 
 func TestAppointmentCreatorService_Create(t *testing.T) {
@@ -26,33 +27,33 @@ func TestAppointmentCreatorService_Create(t *testing.T) {
 		},
 		{
 			name:                 "return error from public holiday checker",
-			appointmentToSave:    NewAppointment("first", "last", time.Now().Add(time.Hour)),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayError{},
 			wantErr:              errors.New("isPublicHoliday: some error"),
 		},
 		{
 			name:                 "return error when appt is on public holiday",
-			appointmentToSave:    NewAppointment("first", "last", time.Now().Add(time.Hour)),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerIsPublicHoliday{},
 			wantErr:              ErrAppointmentOnPublicHoliday,
 		},
 		{
 			name:                 "return error from repository on save",
-			appointmentToSave:    NewAppointment("first", "last", time.Now().Add(time.Hour)),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerSuccess{},
 			appointmentPersistor: appointmentPesistorError{},
 			wantErr:              errors.New("save appointment: some error"),
 		},
 		{
 			name:                 "success",
-			appointmentToSave:    NewAppointment("first", "last", time.Now().Add(time.Hour).UTC()),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerSuccess{},
 			appointmentPersistor: appointmentPersistorSuccess{},
-			want:                 NewAppointment("first", "last", time.Now().Add(time.Hour).UTC()),
+			want:                 NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
 		},
 		{
 			name:              "do not allow appointment in the past",
-			appointmentToSave: NewAppointment("first", "last", time.Now().Add(-time.Nanosecond)),
+			appointmentToSave: NewAppointment("first", "last", ptr.To(time.Now().Add(-time.Nanosecond))),
 			wantErr:           ErrAppointmentInPast,
 		},
 	}
@@ -70,19 +71,19 @@ func TestAppointmentCreatorService_Create(t *testing.T) {
 
 type publicHolidayError struct{}
 
-func (p publicHolidayError) IsPublicHoliday(_ context.Context, _ time.Time) (bool, error) {
+func (p publicHolidayError) IsPublicHoliday(_ context.Context, _ *time.Time) (bool, error) {
 	return false, fmt.Errorf("some error")
 }
 
 type publicHolidayCheckerIsPublicHoliday struct{}
 
-func (p publicHolidayCheckerIsPublicHoliday) IsPublicHoliday(_ context.Context, _ time.Time) (bool, error) {
+func (p publicHolidayCheckerIsPublicHoliday) IsPublicHoliday(_ context.Context, _ *time.Time) (bool, error) {
 	return true, nil
 }
 
 type publicHolidayCheckerSuccess struct{}
 
-func (p publicHolidayCheckerSuccess) IsPublicHoliday(_ context.Context, _ time.Time) (bool, error) {
+func (p publicHolidayCheckerSuccess) IsPublicHoliday(_ context.Context, _ *time.Time) (bool, error) {
 	return false, nil
 }
 

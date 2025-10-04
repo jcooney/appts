@@ -23,7 +23,7 @@ func (r *Repository) CreateAppointment(ctx context.Context, appt *domain.Appoint
 	appointmentRow, err := r.queries.CreateDailyAppointment(ctx, sqlcappts.CreateDailyAppointmentParams{
 		FirstName:       appt.FirstName,
 		LastName:        appt.LastName,
-		AppointmentDate: pgtype.Timestamptz{Time: appt.VisitDate, Valid: true},
+		AppointmentDate: pgtype.Timestamptz{Time: *appt.VisitDate, Valid: true},
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -35,5 +35,5 @@ func (r *Repository) CreateAppointment(ctx context.Context, appt *domain.Appoint
 		return nil, fmt.Errorf("create daily appointment: %w", err)
 	}
 
-	return domain.NewAppointment(appointmentRow.FirstName, appointmentRow.LastName, appointmentRow.AppointmentDate.Time), nil
+	return domain.NewAppointment(appointmentRow.FirstName, appointmentRow.LastName, &appointmentRow.AppointmentDate.Time), nil
 }

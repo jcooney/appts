@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"k8s.io/utils/ptr"
 )
 
 func TestInsertAppointment(t *testing.T) {
@@ -61,7 +62,7 @@ func TestInsertAppointment(t *testing.T) {
 		&domain.Appointment{
 			FirstName: "first",
 			LastName:  "last",
-			VisitDate: time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC),
+			VisitDate: ptr.To(time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC)),
 		})
 	require.NoError(t, err)
 	require.Equal(t, "first", appointment.FirstName)
@@ -112,7 +113,7 @@ func TestInsertDuplicateAppointmentError(t *testing.T) {
 		&domain.Appointment{
 			FirstName: "first",
 			LastName:  "last",
-			VisitDate: time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC),
+			VisitDate: ptr.To(time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC)),
 		})
 	require.NoError(t, err)
 
@@ -120,7 +121,7 @@ func TestInsertDuplicateAppointmentError(t *testing.T) {
 		&domain.Appointment{
 			FirstName: "first",
 			LastName:  "last",
-			VisitDate: time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC),
+			VisitDate: ptr.To(time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC)),
 		})
 	require.Error(t, dupeErr)
 	require.ErrorIs(t, dupeErr, domain.ErrAppointmentDateTaken)

@@ -13,7 +13,7 @@ var ErrAppointmentInPast = fmt.Errorf("cannot book appointment in the past")
 type Appointment struct {
 	FirstName string
 	LastName  string
-	VisitDate time.Time
+	VisitDate *time.Time
 }
 
 type AppointmentPersistorRepository interface {
@@ -21,10 +21,10 @@ type AppointmentPersistorRepository interface {
 }
 
 type PublicHolidayChecker interface {
-	IsPublicHoliday(context.Context, time.Time) (bool, error)
+	IsPublicHoliday(context.Context, *time.Time) (bool, error)
 }
 
-func NewAppointment(firstName string, lastName string, date time.Time) *Appointment {
+func NewAppointment(firstName string, lastName string, date *time.Time) *Appointment {
 	return &Appointment{
 		FirstName: firstName,
 		LastName:  lastName,

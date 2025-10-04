@@ -20,7 +20,7 @@ func NewPublicHolidayGetter(host string) (*PublicHolidayGetter, error) {
 	}, nil
 }
 
-func (g *PublicHolidayGetter) IsPublicHoliday(ctx context.Context, date time.Time) (bool, error) {
+func (g *PublicHolidayGetter) IsPublicHoliday(ctx context.Context, date *time.Time) (bool, error) {
 	publicHolidaysV3, err := g.client.PublicHolidayPublicHolidaysV3WithResponse(ctx, int32(date.Year()), "GB")
 	if err != nil {
 		return false, fmt.Errorf("PublicHolidayPublicHolidaysV3WithResponse: %w", err)

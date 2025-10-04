@@ -14,9 +14,11 @@ import (
 	"github.com/jcooney/appts/api"
 	"github.com/jcooney/appts/domain"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 )
 
 func TestCreateAppointment(t *testing.T) {
+	now := time.Now()
 	tests := []struct {
 		name         string
 		request      api.AppointmentRequest
@@ -29,19 +31,19 @@ func TestCreateAppointment(t *testing.T) {
 			name: "400 when missing first name",
 			request: api.AppointmentRequest{
 				LastName:  "Doe",
-				VisitDate: time.Now(),
+				VisitDate: &now,
 			},
 			wantStatus:  http.StatusBadRequest,
-			wantErrBody: &api.ErrResponse{ErrorText: "missing first name", StatusText: "Bad Request", HTTPStatusCode: 400},
+			wantErrBody: &api.ErrResponse{ErrorText: "Key: 'AppointmentRequest.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag", StatusText: "Bad Request", HTTPStatusCode: 400},
 		},
 		{
 			name: "400 when missing last name",
 			request: api.AppointmentRequest{
 				FirstName: "John",
-				VisitDate: time.Now(),
+				VisitDate: &now,
 			},
 			wantStatus:  http.StatusBadRequest,
-			wantErrBody: &api.ErrResponse{ErrorText: "missing last name", StatusText: "Bad Request", HTTPStatusCode: 400},
+			wantErrBody: &api.ErrResponse{ErrorText: "Key: 'AppointmentRequest.LastName' Error:Field validation for 'LastName' failed on the 'required' tag", StatusText: "Bad Request", HTTPStatusCode: 400},
 		},
 		{
 			name: "400 when date is missing",
@@ -50,21 +52,21 @@ func TestCreateAppointment(t *testing.T) {
 				LastName:  "Doe",
 			},
 			wantStatus:  http.StatusBadRequest,
-			wantErrBody: &api.ErrResponse{ErrorText: "missing visit date", StatusText: "Bad Request", HTTPStatusCode: 400},
+			wantErrBody: &api.ErrResponse{ErrorText: "Key: 'AppointmentRequest.VisitDate' Error:Field validation for 'VisitDate' failed on the 'required' tag", StatusText: "Bad Request", HTTPStatusCode: 400},
 		},
 		{
 			name: "201 when all fields are present",
 			request: api.AppointmentRequest{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC),
+				VisitDate: ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC)),
 			},
 			wantStatus:  http.StatusCreated,
 			mockService: success{},
 			wantResponse: &api.AppointmentResponse{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC),
+				VisitDate: ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC)),
 			},
 		},
 		{
@@ -72,10 +74,10 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC), // Christmas, assuming it's a public holiday
+				VisitDate: ptr.To(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC)), // Christmas, assuming it's a public holiday
 			},
 			wantStatus:  http.StatusInternalServerError,
-			wantErrBody: &api.ErrResponse{ErrorText: "unhandled error", StatusText: "Internal Server Error", HTTPStatusCode: 500},
+			wantErrBody: &api.ErrResponse{ErrorText: "internal server error", StatusText: "Internal Server Error", HTTPStatusCode: 500},
 			mockService: unhandlerError{},
 		},
 		{
@@ -83,7 +85,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC), // Assuming July 4th is already booked
+				VisitDate: ptr.To(time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC)), // Assuming July 4th is already booked
 			},
 			wantStatus:  http.StatusConflict,
 			wantErrBody: &api.ErrResponse{ErrorText: "appointment date already taken", StatusText: "Conflict", HTTPStatusCode: 409},
@@ -94,7 +96,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC), // Christmas
+				VisitDate: ptr.To(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC)), // Christmas
 			},
 			wantStatus:  http.StatusBadRequest,
 			mockService: publicHoliday{},
@@ -105,7 +107,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), // A past date
+				VisitDate: ptr.To(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)), // A past date
 			},
 			wantStatus:  http.StatusBadRequest,
 			wantErrBody: &api.ErrResponse{ErrorText: "cannot book appointment in the past", StatusText: "Bad Request", HTTPStatusCode: 400},
@@ -144,7 +146,7 @@ func TestCreateAppointment(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tt.wantResponse.FirstName, got.FirstName)
 				require.Equal(t, tt.wantResponse.LastName, got.LastName)
-				require.True(t, tt.wantResponse.VisitDate.Equal(got.VisitDate))
+				require.True(t, tt.wantResponse.VisitDate.Equal(*got.VisitDate))
 			}
 			if tt.wantErrBody != nil {
 				all, err := io.ReadAll(resp.Body)
