@@ -40,6 +40,7 @@ We write tests for every area of the application including:
 
 1. `make build-docker`
 2. `make up`
+3. `make down` - stop docker containers and cleanup images
 
 ## Running unit and integration tests
 
@@ -59,8 +60,9 @@ POST /appts
 
 # Known issues and future improvements
 
-Internal server errors leak into the output from the api - not good! We can mask this and log the output instead.
 Appointment dates are modeled as time.Time and not scoped down to day - this could lead to 2 appointments on the same
 day with different time. Must fix.
 No e2e tests - considering publishing docs from Chi and using the generated docs to generate a test client - not sure
 I'll get to this one :).
+There is a fair chunk of code repetition in some places - could be improved by pulling out commonality but I wanted to
+keep it simple for now.
