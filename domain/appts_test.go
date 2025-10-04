@@ -88,12 +88,12 @@ func (p publicHolidayCheckerSuccess) IsPublicHoliday(_ context.Context, _ time.T
 
 type appointmentPesistorError struct{}
 
-func (a appointmentPesistorError) save(_ context.Context, _ *Appointment) (*Appointment, error) {
+func (a appointmentPesistorError) CreateAppointment(_ context.Context, _ *Appointment) (*Appointment, error) {
 	return nil, fmt.Errorf("some error")
 }
 
 type appointmentPersistorSuccess struct{}
 
-func (a appointmentPersistorSuccess) save(_ context.Context, appt *Appointment) (*Appointment, error) {
+func (a appointmentPersistorSuccess) CreateAppointment(_ context.Context, appt *Appointment) (*Appointment, error) {
 	return appt, nil
 }
