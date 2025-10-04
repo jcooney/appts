@@ -10,8 +10,15 @@ test-short:
 lint:
 	golangci-lint run ./...
 
+build-docker:
+	docker build . -t tabeo-myappts:local
+
 up:
 	docker-compose up -d
 
 down:
 	docker-compose down --rmi local
+
+generate-sources:
+	go generate ./...
+	sqlc generate --file repository/sqlc.yaml

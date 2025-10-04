@@ -14,7 +14,7 @@ services:
     ports:
       - "5432:5432"
   api:
-    image: tabeo-appts:latest
+    image: tabeo-myappts:local
     container_name: tabeo-appts
     depends_on:
       postgres:
