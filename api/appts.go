@@ -79,11 +79,7 @@ func createAppointment(service AppointmentCreator) http.HandlerFunc {
 				}
 				return
 			} else {
-				renderErr := render.Render(w, r, &ErrResponse{
-					HTTPStatusCode: http.StatusInternalServerError,
-					StatusText:     http.StatusText(http.StatusInternalServerError),
-					ErrorText:      "internal server error",
-				})
+				renderErr := render.Render(w, r, errInternalServerError())
 				slog.Error("unknown error creating appointment:", "error", err)
 				if renderErr != nil {
 					slog.Warn("error rendering response:", "render error", renderErr)

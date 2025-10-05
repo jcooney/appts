@@ -6,7 +6,8 @@ This repository contains the code for the Tabeo assignment. The project is struc
 - `cmd/` contains the main application entry point along with the DI setup.
 - `domain/` contains the core business logic and domain models including domain errors.
 - `publichols` contains the public holidays api client with the logic to determine public holidays.
-- `repository/` contains the repository layer for data persistence using sqlc for.
+- `repository/` contains the repository layer for data persistence using sqlc for mapping queries to entity models and
+  pgx for connecting to the database.
 - `schema/` contains the database schema and migration files with golang-migrate tests written to check the migration
   works.
 
@@ -29,12 +30,12 @@ Tests are written simply using the Go testing package and testify for assertions
 to keep it simple, however, I've previously used `uber-mock` and `mockery`.
 We write tests for every area of the application including:
 
-- http controllers to test request validation and error response mapping - we do this by mapping the http.Handler
+- http controllers to test request validation and error response mapping - we do this by injecting the http.Handler
   defined in routes.go directly into the httptest.Server.
 - domain logic remains isolated from the http layer and is tested directly.
 - repository layer is tested using a test database spun up using `testcontainers-go` - this ensures that our sqlc
   generated code is also tested.
-- public holidays api client is tested using a mock http server to simulate the external api.
+- public holidays api client is generated using `oapi-codegen` and tested using a mock http server to simulate the external api.
 
 ## Setup and Running the Application
 
@@ -50,6 +51,7 @@ We write tests for every area of the application including:
 ### Manual testing
 
 #### Create an appointment ( post a 2nd time on the same day to see the conflict error )
+
 ```
 POST /appts
 {
@@ -60,6 +62,7 @@ POST /appts
 ```
 
 #### Create an appointment on a public holiday (should see an error)
+
 ```
 POST /appts
 {
@@ -70,6 +73,7 @@ POST /appts
 ```
 
 #### Cannot create an appointment in the past (should see an error)
+
 ```
 POST /appts
 {

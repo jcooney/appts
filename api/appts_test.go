@@ -18,7 +18,7 @@ import (
 )
 
 func TestCreateAppointment(t *testing.T) {
-	now := time.Now()
+	now := ptr.To(api.VisitDate(time.Now()))
 	tests := []struct {
 		name         string
 		request      api.AppointmentRequest
@@ -31,7 +31,7 @@ func TestCreateAppointment(t *testing.T) {
 			name: "400 when missing first name",
 			request: api.AppointmentRequest{
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(&now),
+				VisitDate: now,
 			},
 			wantStatus:  http.StatusBadRequest,
 			wantErrBody: &api.ErrResponse{ErrorText: "Key: 'AppointmentRequest.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag", StatusText: "Bad Request", HTTPStatusCode: 400},
@@ -40,7 +40,7 @@ func TestCreateAppointment(t *testing.T) {
 			name: "400 when missing last name",
 			request: api.AppointmentRequest{
 				FirstName: "John",
-				VisitDate: (*api.VisitDate)(&now),
+				VisitDate: now,
 			},
 			wantStatus:  http.StatusBadRequest,
 			wantErrBody: &api.ErrResponse{ErrorText: "Key: 'AppointmentRequest.LastName' Error:Field validation for 'LastName' failed on the 'required' tag", StatusText: "Bad Request", HTTPStatusCode: 400},
@@ -59,14 +59,14 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC))),
+				VisitDate: ptr.To(api.VisitDate(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC))),
 			},
 			wantStatus:  http.StatusCreated,
 			mockService: success{},
 			wantResponse: &api.AppointmentResponse{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC))),
+				VisitDate: ptr.To(api.VisitDate(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC))),
 			},
 		},
 		{
@@ -74,7 +74,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC))), // Christmas, assuming it's a public holiday
+				VisitDate: ptr.To(api.VisitDate(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC))), // Christmas, assuming it's a public holiday
 			},
 			wantStatus:  http.StatusInternalServerError,
 			wantErrBody: &api.ErrResponse{ErrorText: "internal server error", StatusText: "Internal Server Error", HTTPStatusCode: 500},
@@ -85,7 +85,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC))), // Assuming July 4th is already booked
+				VisitDate: ptr.To(api.VisitDate(time.Date(2024, 7, 4, 0, 0, 0, 0, time.UTC))), // Assuming July 4th is already booked
 			},
 			wantStatus:  http.StatusConflict,
 			wantErrBody: &api.ErrResponse{ErrorText: "appointment date already taken", StatusText: "Conflict", HTTPStatusCode: 409},
@@ -96,7 +96,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC))), // Christmas
+				VisitDate: ptr.To(api.VisitDate(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC))), // Christmas
 			},
 			wantStatus:  http.StatusBadRequest,
 			mockService: publicHoliday{},
@@ -107,7 +107,7 @@ func TestCreateAppointment(t *testing.T) {
 			request: api.AppointmentRequest{
 				FirstName: "Jane",
 				LastName:  "Doe",
-				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))), // A past date
+				VisitDate: ptr.To(api.VisitDate(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))),
 			},
 			wantStatus:  http.StatusBadRequest,
 			wantErrBody: &api.ErrResponse{ErrorText: "cannot book appointment in the past", StatusText: "Bad Request", HTTPStatusCode: 400},
@@ -186,13 +186,9 @@ func TestCreateAppointmentJson(t *testing.T) {
 			wantErrBody: &api.ErrResponse{HTTPStatusCode: 400, StatusText: "Bad Request", ErrorText: "parsing time \"jnoefinefnioefwinoefwino\" as \"2006-01-02\": cannot parse \"jnoefinefnioefwinoefwino\" as \"2006\""},
 		},
 		{
-			name: "200 when valid JSON",
-			requestBody: `{
-				"firstName": "John",
-				"lastName": "Doe",
-				"visitDate": "2024-07-15"
-			}`,
-			wantStatus: http.StatusCreated,
+			name:        "200 when valid JSON",
+			requestBody: `{	"firstName": "John","lastName": "Doe", "visitDate": "2024-07-15" }`,
+			wantStatus:  http.StatusCreated,
 		},
 	}
 	for _, tt := range tests {
