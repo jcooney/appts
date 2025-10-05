@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("error initialising migrations: %v", err)
 	}
 	err = m.Up()
-	if err != nil {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) { // o_O
 		log.Fatalf("error running migrations: %v", err)
 	}
 

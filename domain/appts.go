@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -66,6 +67,9 @@ func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointmen
 
 	save, err := s.repo.CreateAppointment(ctx, appt)
 	if err != nil {
+		if errors.Is(err, ErrAppointmentDateTaken) {
+			return nil, ErrAppointmentDateTaken // bubble up to allow http error handling
+		}
 		return nil, fmt.Errorf("save appointment: %w", err)
 	}
 	return save, nil

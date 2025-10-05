@@ -45,6 +45,13 @@ func TestAppointmentCreatorService_Create(t *testing.T) {
 			wantErr:              errors.New("save appointment: some error"),
 		},
 		{
+			name:                 "bubble up conflict error",
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
+			publicHolidayChecker: publicHolidayCheckerSuccess{},
+			appointmentPersistor: conflict{},
+			wantErr:              ErrAppointmentDateTaken,
+		},
+		{
 			name:                 "success",
 			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerSuccess{},
@@ -101,4 +108,10 @@ type appointmentPersistorSuccess struct{}
 
 func (a appointmentPersistorSuccess) CreateAppointment(_ context.Context, appt *Appointment) (*Appointment, error) {
 	return appt, nil
+}
+
+type conflict struct{}
+
+func (c conflict) CreateAppointment(_ context.Context, _ *Appointment) (*Appointment, error) {
+	return nil, ErrAppointmentDateTaken
 }

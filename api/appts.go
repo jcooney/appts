@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/render"
@@ -21,12 +22,22 @@ type AppointmentRequest struct {
 type VisitDate time.Time
 
 func (v *VisitDate) UnmarshalJSON(b []byte) error {
-	t, err := time.Parse(time.DateOnly, string(b))
+	s := string(b)
+	unquoted, err := strconv.Unquote(s)
+	if err != nil {
+		return err
+	}
+	t, err := time.Parse(time.DateOnly, unquoted)
 	if err != nil {
 		return err
 	}
 	*v = VisitDate(t)
 	return nil
+}
+
+func (v *VisitDate) MarshalJSON() ([]byte, error) {
+	t := time.Time(*v)
+	return []byte(strconv.Quote(t.Format(time.DateOnly))), nil
 }
 
 func (v *VisitDate) Time() *time.Time {
@@ -37,7 +48,7 @@ func (v *VisitDate) Time() *time.Time {
 type AppointmentResponse struct {
 	FirstName string     `json:"firstName"`
 	LastName  string     `json:"lastName"`
-	VisitDate *time.Time `json:"visitDate"`
+	VisitDate *VisitDate `json:"visitDate"`
 }
 
 type AppointmentCreator interface {
@@ -73,9 +84,9 @@ func createAppointment(service AppointmentCreator) http.HandlerFunc {
 					StatusText:     http.StatusText(http.StatusInternalServerError),
 					ErrorText:      "internal server error",
 				})
-				slog.Error("unknown error creating appointment: %v", "error", err)
+				slog.Error("unknown error creating appointment:", "error", err)
 				if renderErr != nil {
-					slog.Warn("error rendering response: %v", "render error", renderErr)
+					slog.Warn("error rendering response:", "render error", renderErr)
 					return
 				}
 				return
@@ -107,6 +118,6 @@ func NewAppointmentResponse(appointment *domain.Appointment) AppointmentResponse
 	return AppointmentResponse{
 		FirstName: appointment.FirstName,
 		LastName:  appointment.LastName,
-		VisitDate: appointment.VisitDate,
+		VisitDate: (*VisitDate)(appointment.VisitDate),
 	}
 }

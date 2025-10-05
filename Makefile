@@ -19,6 +19,8 @@ up:
 down:
 	docker-compose down --rmi local
 
+restart: down build-docker up
+
 generate-sources:
 	go generate ./...
 	sqlc generate --file repository/sqlc.yaml

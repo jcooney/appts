@@ -14,7 +14,7 @@ Other files:
 
 - `Dockerfile` defines the Docker image for the application.
 - `docker-compose.yml` sets up the application along with a PostgreSQL database.
-- Makefile contains commands for building, running, and testing the application. (see below)
+- `Makefile` contains commands for building, running, and testing the application. (see below)
 
 ## Prerequisites
 
@@ -49,19 +49,38 @@ We write tests for every area of the application including:
 
 ### Manual testing
 
+#### Create an appointment ( post a 2nd time on the same day to see the conflict error )
 ```
 POST /appts
 {
 "firstName": "John",
 "lastName": "Doe",
-"visitDate": "2026-01-03T00:00:00Z"
+"visitDate": "2026-01-03"
+}
+```
+
+#### Create an appointment on a public holiday (should see an error)
+```
+POST /appts
+{
+"firstName": "John",
+"lastName": "Doe",
+"visitDate": "2026-01-01"
+}
+```
+
+#### Cannot create an appointment in the past (should see an error)
+```
+POST /appts
+{
+"firstName": "John",
+"lastName": "Doe",
+"visitDate": "2022-01-01"
 }
 ```
 
 # Known issues and future improvements
 
-Appointment dates are modeled as time.Time and not scoped down to day - this could lead to 2 appointments on the same
-day with different time. Must fix.
 No e2e tests - considering publishing docs from Chi and using the generated docs to generate a test client - not sure
 I'll get to this one :).
 There is a fair chunk of code repetition in some places - could be improved by pulling out commonality but I wanted to

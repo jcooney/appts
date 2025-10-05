@@ -62,12 +62,12 @@ func TestInsertAppointment(t *testing.T) {
 		&domain.Appointment{
 			FirstName: "first",
 			LastName:  "last",
-			VisitDate: ptr.To(time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC)),
+			VisitDate: ptr.To(time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC)),
 		})
 	require.NoError(t, err)
 	require.Equal(t, "first", appointment.FirstName)
 	require.Equal(t, "last", appointment.LastName)
-	require.Equal(t, time.Date(2024, 12, 25, 9, 0, 0, 0, time.UTC), appointment.VisitDate.UTC())
+	require.Equal(t, time.Date(2024, 12, 25, 0, 0, 0, 0, time.UTC), appointment.VisitDate.UTC())
 }
 
 func TestInsertDuplicateAppointmentError(t *testing.T) {

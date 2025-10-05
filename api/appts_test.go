@@ -66,7 +66,7 @@ func TestCreateAppointment(t *testing.T) {
 			wantResponse: &api.AppointmentResponse{
 				FirstName: "John",
 				LastName:  "Doe",
-				VisitDate: ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC)),
+				VisitDate: (*api.VisitDate)(ptr.To(time.Date(2024, 7, 15, 0, 0, 0, 0, time.UTC))),
 			},
 		},
 		{
@@ -146,7 +146,7 @@ func TestCreateAppointment(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, tt.wantResponse.FirstName, got.FirstName)
 				require.Equal(t, tt.wantResponse.LastName, got.LastName)
-				require.True(t, tt.wantResponse.VisitDate.Equal(*got.VisitDate))
+				require.Equal(t, *tt.wantResponse.VisitDate, *got.VisitDate)
 			}
 			if tt.wantErrBody != nil {
 				all, err := io.ReadAll(resp.Body)
@@ -177,13 +177,22 @@ func TestCreateAppointmentJson(t *testing.T) {
 			name:        "400 when invalid date format",
 			requestBody: `{"firstName": "John", "lastName": "Doe", "visitDate": "15-07-2024"}`, // Incorrect date format
 			wantStatus:  http.StatusBadRequest,
-			wantErrBody: &api.ErrResponse{ErrorText: "parsing time \"\\\"15-07-2024\\\"\" as \"2006-01-02\": cannot parse \"\\\"15-07-2024\\\"\" as \"2006\"", StatusText: "Bad Request", HTTPStatusCode: 400},
+			wantErrBody: &api.ErrResponse{ErrorText: "parsing time \"15-07-2024\" as \"2006-01-02\": cannot parse \"15-07-2024\" as \"2006\"", StatusText: "Bad Request", HTTPStatusCode: 400},
 		},
 		{
 			name:        "400 when invalid date format 2",
 			requestBody: `{"firstName": "John", "lastName": "Doe", "visitDate": "jnoefinefnioefwinoefwino"}`,
 			wantStatus:  http.StatusBadRequest,
-			wantErrBody: &api.ErrResponse{HTTPStatusCode: 400, StatusText: "Bad Request", ErrorText: "parsing time \"\\\"jnoefinefnioefwinoefwino\\\"\" as \"2006-01-02\": cannot parse \"\\\"jnoefinefnioefwinoefwino\\\"\" as \"2006\""},
+			wantErrBody: &api.ErrResponse{HTTPStatusCode: 400, StatusText: "Bad Request", ErrorText: "parsing time \"jnoefinefnioefwinoefwino\" as \"2006-01-02\": cannot parse \"jnoefinefnioefwinoefwino\" as \"2006\""},
+		},
+		{
+			name: "200 when valid JSON",
+			requestBody: `{
+				"firstName": "John",
+				"lastName": "Doe",
+				"visitDate": "2024-07-15"
+			}`,
+			wantStatus: http.StatusCreated,
 		},
 	}
 	for _, tt := range tests {
@@ -204,6 +213,12 @@ func TestCreateAppointmentJson(t *testing.T) {
 				}
 			}(resp.Body)
 
+			if tt.wantErrBody == nil && tt.wantStatus != resp.StatusCode {
+				// log response body
+				all, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				t.Logf("response body: %s", string(all))
+			}
 			require.Equal(t, tt.wantStatus, resp.StatusCode)
 			if tt.wantErrBody != nil {
 				all, err := io.ReadAll(resp.Body)
