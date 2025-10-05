@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"k8s.io/utils/ptr"
 )
 
 var ErrAppointmentOnPublicHoliday = fmt.Errorf("cannot book appointment on public holiday")
@@ -28,19 +30,21 @@ func NewAppointment(firstName string, lastName string, date *time.Time) *Appoint
 	return &Appointment{
 		FirstName: firstName,
 		LastName:  lastName,
-		VisitDate: date,
+		VisitDate: ptr.To(time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)),
 	}
 }
 
 type AppointmentCreatorService struct {
 	repo    AppointmentPersistorRepository
 	checker PublicHolidayChecker
+	nowFunc func() time.Time
 }
 
-func NewAppointmentCreatorService(repo AppointmentPersistorRepository, checker PublicHolidayChecker) *AppointmentCreatorService {
+func NewAppointmentCreatorService(repo AppointmentPersistorRepository, checker PublicHolidayChecker, nowFunc func() time.Time) *AppointmentCreatorService {
 	return &AppointmentCreatorService{
 		repo:    repo,
 		checker: checker,
+		nowFunc: nowFunc,
 	}
 }
 
@@ -48,7 +52,7 @@ func (s *AppointmentCreatorService) Create(ctx context.Context, appt *Appointmen
 	if appt == nil {
 		return nil, fmt.Errorf("appointment is nil")
 	}
-	if appt.VisitDate.Before(time.Now()) {
+	if appt.VisitDate.Before(s.nowFunc()) {
 		return nil, ErrAppointmentInPast
 	}
 	ok, err := s.checker.IsPublicHoliday(ctx, appt.VisitDate)

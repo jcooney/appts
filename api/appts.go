@@ -12,6 +12,34 @@ import (
 	"github.com/jcooney/appts/domain"
 )
 
+type AppointmentRequest struct {
+	FirstName string     `json:"firstName" validate:"required,max=50"`
+	LastName  string     `json:"lastName" validate:"required,max=50"`
+	VisitDate *VisitDate `json:"visitDate" validate:"required"`
+}
+
+type VisitDate time.Time
+
+func (v *VisitDate) UnmarshalJSON(b []byte) error {
+	t, err := time.Parse(time.DateOnly, string(b))
+	if err != nil {
+		return err
+	}
+	*v = VisitDate(t)
+	return nil
+}
+
+func (v *VisitDate) Time() *time.Time {
+	t := time.Time(*v)
+	return &t
+}
+
+type AppointmentResponse struct {
+	FirstName string     `json:"firstName"`
+	LastName  string     `json:"lastName"`
+	VisitDate *time.Time `json:"visitDate"`
+}
+
 type AppointmentCreator interface {
 	Create(ctx context.Context, appt *domain.Appointment) (*domain.Appointment, error)
 }
@@ -27,7 +55,7 @@ func createAppointment(service AppointmentCreator) http.HandlerFunc {
 			return
 		}
 
-		appointment, err := service.Create(r.Context(), domain.NewAppointment(req.FirstName, req.LastName, req.VisitDate))
+		appointment, err := service.Create(r.Context(), domain.NewAppointment(req.FirstName, req.LastName, req.VisitDate.Time()))
 		if err != nil {
 			if code, ok := errorMap[err]; ok {
 				renderErr := render.Render(w, r, &ErrResponse{
@@ -58,12 +86,6 @@ func createAppointment(service AppointmentCreator) http.HandlerFunc {
 	}
 }
 
-type AppointmentRequest struct {
-	FirstName string     `json:"firstName" validate:"required,max=50"`
-	LastName  string     `json:"lastName" validate:"required,max=50"`
-	VisitDate *time.Time `json:"visitDate" validate:"required"` //TODO: is there a better way to handle date-only values in JSON?
-}
-
 func (a *AppointmentRequest) Bind(_ *http.Request) error {
 	v := validator.New()
 	if err := v.Struct(a); err != nil {
@@ -74,12 +96,6 @@ func (a *AppointmentRequest) Bind(_ *http.Request) error {
 		return err
 	}
 	return nil
-}
-
-type AppointmentResponse struct {
-	FirstName string     `json:"firstName"`
-	LastName  string     `json:"lastName"`
-	VisitDate *time.Time `json:"visitDate"`
 }
 
 func (a AppointmentResponse) Render(_ http.ResponseWriter, _ *http.Request) error {

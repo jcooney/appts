@@ -53,7 +53,7 @@ func main() {
 		log.Fatalf("unable to connect to database: %v", err)
 	}
 	repo := repository.NewRepository(pool)
-	service := domain.NewAppointmentCreatorService(repo, publicHolidayGetter)
+	service := domain.NewAppointmentCreatorService(repo, publicHolidayGetter, time.Now)
 	server := &http.Server{Addr: "0.0.0.0:3333", Handler: api.ChiHandler(service)}
 
 	go func() {

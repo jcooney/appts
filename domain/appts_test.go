@@ -27,39 +27,39 @@ func TestAppointmentCreatorService_Create(t *testing.T) {
 		},
 		{
 			name:                 "return error from public holiday checker",
-			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayError{},
 			wantErr:              errors.New("isPublicHoliday: some error"),
 		},
 		{
 			name:                 "return error when appt is on public holiday",
-			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerIsPublicHoliday{},
 			wantErr:              ErrAppointmentOnPublicHoliday,
 		},
 		{
 			name:                 "return error from repository on save",
-			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerSuccess{},
 			appointmentPersistor: appointmentPesistorError{},
 			wantErr:              errors.New("save appointment: some error"),
 		},
 		{
 			name:                 "success",
-			appointmentToSave:    NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
+			appointmentToSave:    NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 			publicHolidayChecker: publicHolidayCheckerSuccess{},
 			appointmentPersistor: appointmentPersistorSuccess{},
-			want:                 NewAppointment("first", "last", ptr.To(time.Now().Add(time.Hour).UTC())),
+			want:                 NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(time.Hour).UTC())),
 		},
 		{
 			name:              "do not allow appointment in the past",
-			appointmentToSave: NewAppointment("first", "last", ptr.To(time.Now().Add(-time.Nanosecond))),
+			appointmentToSave: NewAppointment("first", "last", ptr.To(fixedTimeFunc().Add(-time.Nanosecond))),
 			wantErr:           ErrAppointmentInPast,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			unitUnderTest := NewAppointmentCreatorService(tt.appointmentPersistor, tt.publicHolidayChecker)
+			unitUnderTest := NewAppointmentCreatorService(tt.appointmentPersistor, tt.publicHolidayChecker, fixedTimeFunc)
 			got, err := unitUnderTest.Create(t.Context(), tt.appointmentToSave)
 			if tt.wantErr != nil {
 				require.ErrorContains(t, err, tt.wantErr.Error())
@@ -67,6 +67,10 @@ func TestAppointmentCreatorService_Create(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func fixedTimeFunc() time.Time {
+	return time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 }
 
 type publicHolidayError struct{}
